@@ -10,6 +10,18 @@ export const categoryRouter = createTRPCRouter({
           name: input.name,
           type: "EXPENSE",
           status: "ACTIVE",
+          user: {
+            connectOrCreate: {
+              where: {
+                id: 1,
+              },
+              create: {
+                name: "Test User",
+                email: "email@email.com.br",
+                password: "123",
+              },
+            },
+          },
         },
       });
     }),

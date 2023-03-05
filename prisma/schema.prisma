@@ -27,12 +27,12 @@ model Account {
     type              String
     provider          String
     providerAccountId String
-    refresh_token     String? // @db.Text
-    access_token      String? // @db.Text
+    refresh_token     String? @db.Text
+    access_token      String? @db.Text
     expires_at        Int?
     token_type        String?
     scope             String?
-    id_token          String? // @db.Text
+    id_token          String? @db.Text
     session_state     String?
     user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -49,7 +49,6 @@ model Session {
 
 model User {
     id            String    @id @default(cuid())
-    password      String
     name          String?
     email         String?   @unique
     emailVerified DateTime?
@@ -74,20 +73,22 @@ model VerificationToken {
 }
 
 model Expense {
-    id          String   @id @default(cuid())
-    amount      Float
-    date        DateTime
-    description String
-    category    Category @relation(fields: [categoryId], references: [id])
-    categoryId  String
-    user        User     @relation(fields: [userId], references: [id])
-    userId      String
-    type        Type
-    status      Status   @default(ACTIVE)
+    id            String       @id @default(cuid())
+    amount        Float
+    date          DateTime     @db.Date
+    description   String
+    category      Category     @relation(fields: [categoryId], references: [id])
+    categoryId    String
+    subCategory   Subcategory? @relation(fields: [subcategoryId], references: [id])
+    subcategoryId String?
+    user          User         @relation(fields: [userId], references: [id])
+    userId        String
+    type          Type
+    status        Status       @default(ACTIVE)
 
-    createdAt DateTime  @default(now())
-    updatedAt DateTime? @updatedAt
-    Trigger   Trigger[]
+    createdAt       DateTime          @default(now())
+    updatedAt       DateTime?         @updatedAt
+    TriggerExpenses TriggerExpenses[]
 }
 
 model Category {
@@ -114,20 +115,35 @@ model Subcategory {
     status     Status    @default(ACTIVE)
     category   Category? @relation(fields: [categoryId], references: [id])
     categoryId String?
+    Trigger    Trigger[]
+    Expense    Expense[]
 }
 
 model Trigger {
-    id                String   @id @default(cuid())
-    name              String?  @unique
+    id                String  @id @default(cuid())
+    name              String? @unique
     regularExpression String?
     description       String?
-    expense           Expense  @relation(fields: [expenseId], references: [id])
-    expenseId         String
-    category          Category @relation(fields: [categoryId], references: [id])
-    categoryId        String
-    user              User     @relation(fields: [userId], references: [id])
-    userId            String
-    status            Status   @default(ACTIVE)
+
+    category      Category     @relation(fields: [categoryId], references: [id])
+    categoryId    String
+    subcategory   Subcategory? @relation(fields: [subcategoryId], references: [id])
+    subcategoryId String?
+    user          User         @relation(fields: [userId], references: [id])
+    userId        String
+    status        Status       @default(ACTIVE)
+
+    createdAt       DateTime          @default(now())
+    updatedAt       DateTime?         @updatedAt
+    TriggerExpenses TriggerExpenses[]
+}
+
+model TriggerExpenses {
+    id        String  @id @default(cuid())
+    expense   Expense @relation(fields: [expenseId], references: [id])
+    expenseId String
+    trigger   Trigger @relation(fields: [triggerId], references: [id])
+    triggerId String
 
     createdAt DateTime  @default(now())
     updatedAt DateTime? @updatedAt

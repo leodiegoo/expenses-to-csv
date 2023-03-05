@@ -1,8 +1,20 @@
-import { NextPage } from "next";
+import { type NextPage } from "next";
 import { useState } from "react";
+import { useForm, type SubmitHandler } from "react-hook-form";
 import { api } from "~/utils/api";
 
+type CategoryInput = {
+  name: string;
+  type: "INCOME" | "EXPENSE";
+};
+
 const Categories: NextPage = () => {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm<CategoryInput>();
   const { getAll, create } = api.categories;
 
   const categories = getAll.useQuery();
@@ -10,11 +22,17 @@ const Categories: NextPage = () => {
 
   const [showContainer, setShowContainer] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const name = e.currentTarget.elements.namedItem("name") as HTMLInputElement;
-    createCategory.mutate({ name: name.value });
-    setShowContainer(false);
+  const onSubmit: SubmitHandler<CategoryInput> = async (data) => {
+    const { name } = data;
+    await createCategory.mutateAsync(
+      { name },
+      {
+        onSuccess: () => {
+          void categories.refetch();
+        },
+      }
+    );
+    reset();
   };
 
   return (
@@ -28,17 +46,27 @@ const Categories: NextPage = () => {
       {showContainer && (
         <form
           className="container card mx-auto mt-2 mb-2 bg-base-300"
-          onSubmit={handleSubmit}
+          onSubmit={handleSubmit(onSubmit)}
         >
           <div className="card-body">
             <div className="mb-4">
-              <label className="label">Name</label>
+              <label className="label" htmlFor="name">
+                Name
+              </label>
               <input
-                className="input"
+                className={"input" + (errors.name ? " input-error" : "")}
                 id="name"
                 type="text"
                 placeholder="Name"
+                {...register("name", { required: true })}
               />
+              {errors.name && (
+                <label className="label">
+                  <span className="label-text-alt text-error">
+                    Field required
+                  </span>
+                </label>
+              )}
             </div>
             <div className="flex">
               <button className="btn-primary btn mr-2" type="submit">
@@ -46,8 +74,11 @@ const Categories: NextPage = () => {
               </button>
               <button
                 className="btn-error btn"
-                type="button"
-                onClick={() => setShowContainer(false)}
+                type="reset"
+                onClick={() => {
+                  setShowContainer(false);
+                  reset();
+                }}
               >
                 Cancel
               </button>
@@ -59,7 +90,8 @@ const Categories: NextPage = () => {
         <table className="table w-full">
           <thead>
             <tr>
-              <th>Nome</th>
+              <th>Name</th>
+              <th>Type</th>
               <th></th>
             </tr>
           </thead>
@@ -67,11 +99,23 @@ const Categories: NextPage = () => {
             {categories.data?.map((category) => (
               <tr key={category.id}>
                 <td>{category.name}</td>
-                <th>
+                <td>
+                  <span
+                    className={
+                      "badge" +
+                      (category.type === "EXPENSE"
+                        ? " badge-error"
+                        : " badge-success")
+                    }
+                  >
+                    {category.type}
+                  </span>
+                </td>
+                <td>
                   <button className="btn-ghost btn-xs btn">
                     adicionar subcategoria
                   </button>
-                </th>
+                </td>
               </tr>
             ))}
           </tbody>

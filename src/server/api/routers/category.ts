@@ -1,8 +1,12 @@
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
+} from "~/server/api/trpc";
 import { z } from "zod";
 
 export const categoryRouter = createTRPCRouter({
-  create: publicProcedure
+  create: protectedProcedure
     .input(z.object({ name: z.string() }))
     .mutation(({ ctx, input }) => {
       return ctx.prisma.category.create({
@@ -11,15 +15,8 @@ export const categoryRouter = createTRPCRouter({
           type: "EXPENSE",
           status: "ACTIVE",
           user: {
-            connectOrCreate: {
-              where: {
-                id: 1,
-              },
-              create: {
-                name: "Test User",
-                email: "email@email.com.br",
-                password: "123",
-              },
+            connect: {
+              id: ctx.session.user.id,
             },
           },
         },
@@ -27,5 +24,12 @@ export const categoryRouter = createTRPCRouter({
     }),
   getAll: publicProcedure.query(({ ctx }) => {
     return ctx.prisma.category.findMany();
+  }),
+  getAllWithSubcategories: publicProcedure.query(({ ctx }) => {
+    return ctx.prisma.category.findMany({
+      include: {
+        Subcategory: true,
+      },
+    });
   }),
 });
